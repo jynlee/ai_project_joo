@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 이미지 분석 서비스</title>
+    <style>
+        /* 다크 모드 기반 깔끔한 UI */
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 600px;
+            background-color: #1e1e1e;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        h1 {
+            text-align: center;
+            color: #bb86fc;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        input[type="file"], input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #333;
+            background-color: #2a2a2a;
+            color: white;
+            box-sizing: border-box;
+        }
+
+        #previewContainer {
+            margin-top: 15px;
+            text-align: center;
+            display: none;
+        }
+
+        #previewImage {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            border: 2px solid #bb86fc;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background-color: #bb86fc;
+            color: #121212;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #9965f4;
+        }
+
+        #loader {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+            color: #03dac6;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #03dac6;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #resultArea {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #2a2a2a;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .result-title {
+            color: #03dac6;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .result-content {
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>AI 이미지 분석기</h1>
+
+    <!-- 이미지 업로드 및 미리보기 -->
+    <div class="input-group">
+        <label for="imageInput">이미지 업로드</label>
+        <input type="file" id="imageInput" accept="image/*">
+        <div id="previewContainer">
+            <p>이미지 미리보기</p>
+            <img id="previewImage" src="" alt="미리보기">
+        </div>
+    </div>
+
+    <!-- 질문 입력 -->
+    <div class="input-group">
+        <label for="questionInput">질문 입력</label>
+        <input type="text" id="questionInput" placeholder="이미지에 대해 궁금한 점을 물어보세요 (예: 텍스트를 추출해줘)">
+    </div>
+
+    <!-- 분석 버튼 -->
+    <button id="analyzeBtn">분석하기</button>
+
+    <!-- 로딩 애니메이션 -->
+    <div id="loader">
+        <div class="spinner"></div>
+        <span>AI가 분석 중입니다... 잠시만 기다려주세요.</span>
+    </div>
+
+    <!-- 결과 영역 -->
+    <div id="resultArea">
+        <div class="result-title">분석 결과:</div>
+        <div id="resultContent" class="result-content"></div>
+    </div>
+</div>
+
+<script>
+    const imageInput = document.getElementById('imageInput');
+    const previewContainer = document.getElementById('previewContainer');
+    const previewImage = document.getElementById('previewImage');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const loader = document.getElementById('loader');
+    const resultArea = document.getElementById('resultArea');
+    const resultContent = document.getElementById('resultContent');
+    const questionInput = document.getElementById('questionInput');
+
+    // 이미지 파일 선택 시 미리보기 표시
+    imageInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImage.src = e.target.result;
+                previewContainer.style.display = 'block';
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // 분석 버튼 클릭 시 서버 연동
+    analyzeBtn.addEventListener('click', async function() {
+        const file = imageInput.files[0];
+        const question = questionInput.value;
+
+        if (!file) {
+            alert('이미지를 선택해주세요.');
+            return;
+        }
+
+        if (!question) {
+            alert('질문을 입력해주세요.');
+            return;
+        }
+
+        // UI 상태 초기화
+        loader.style.display = 'block';
+        resultArea.style.display = 'none';
+        analyzeBtn.disabled = true;
+
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('question', question);
+
+        try {
+            // Node.js 프록시 서버로 요청 전송
+            const response = await fetch('/proxy/analyze', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                resultContent.textContent = data.result || data.answer;
+                resultArea.style.display = 'block';
+            } else {
+                alert('분석 실패: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('서버와 통신 중 에러가 발생했습니다.');
+        } finally {
+            loader.style.display = 'none';
+            analyzeBtn.disabled = false;
+        }
+    });
+</script>
+
+</body>
+</html>
