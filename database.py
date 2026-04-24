@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def connectDatabase():
-    """ MySQL 데이터베이스에 연결하고 연결 객체를 반환합니다. """
+    """ MySQL 데이터베이스에 연결하고 연결 객체를 반환합니다.! """
     try:
         dbConnection = pymysql.connect(
             host=os.getenv("DB_HOST"),
