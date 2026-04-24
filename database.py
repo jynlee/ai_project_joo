@@ -13,7 +13,7 @@ def connectDatabase():
             user=os.getenv("DB_USER"),
             password=os.getenv("DB_PASSWORD"),
             db=os.getenv("DB_NAME"),
-            port=os.getenv("DB_PORT"),
+            port=int(os.getenv("DB_PORT")),
             charset="utf8mb4",
             cursorclass=pymysql.cursors.DictCursor
         )
